@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GearVault — Electronics Inventory Tracker</title>
+    <meta name="description" content="Track and share electronics among your friend group. See who has what gadgets, tools, and gear.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Animated Background Particles -->
+    <div class="bg-particles" id="bgParticles"></div>
+
+    <!-- Setup Wizard (shown on first run) -->
+    <div class="setup-overlay" id="setupOverlay">
+        <div class="setup-wizard">
+            <div class="setup-logo">
+                <div class="logo-icon large">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/>
+                        <polyline points="17 2 12 7 7 2"/>
+                    </svg>
+                </div>
+                <h1 class="setup-title">Welcome to GearVault</h1>
+                <p class="setup-desc">Connect to Firebase so all your friends can access the same inventory in real-time.</p>
+            </div>
+
+            <div class="setup-steps">
+                <div class="setup-step">
+                    <div class="step-number">1</div>
+                    <div class="step-content">
+                        <h3>Create a Firebase Project</h3>
+                        <p>Go to <a href="https://console.firebase.google.com/" target="_blank" rel="noopener">Firebase Console</a> → Click <strong>"Add Project"</strong> → Give it a name → Continue</p>
+                    </div>
+                </div>
+                <div class="setup-step">
+                    <div class="step-number">2</div>
+                    <div class="step-content">
+                        <h3>Add a Web App</h3>
+                        <p>In your project, click the <strong>Web icon (&lt;/&gt;)</strong> → Register app → Copy the <code>firebaseConfig</code> object</p>
+                    </div>
+                </div>
+                <div class="setup-step">
+                    <div class="step-number">3</div>
+                    <div class="step-content">
+                        <h3>Enable Realtime Database</h3>
+                        <p>Go to <strong>Build → Realtime Database → Create Database</strong> → Choose region → Start in <strong>test mode</strong></p>
+                    </div>
+                </div>
+                <div class="setup-step">
+                    <div class="step-number">4</div>
+                    <div class="step-content">
+                        <h3>Paste Your Config Below</h3>
+                        <p>Paste the <code>firebaseConfig</code> JSON object from Step 2</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="setup-config-area">
+                <textarea id="firebaseConfigInput" class="form-input config-textarea" placeholder='{
+  "apiKey": "AIza...",
+  "authDomain": "your-project.firebaseapp.com",
+  "databaseURL": "https://your-project-default-rtdb.firebaseio.com",
+  "projectId": "your-project",
+  "storageBucket": "your-project.appspot.com",
+  "messagingSenderId": "123456789",
+  "appId": "1:123456789:web:abcdef"
+}'></textarea>
+                <div class="setup-error" id="setupError"></div>
+                <button class="btn-primary setup-connect-btn" id="setupConnectBtn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="M12 5l7 7-7 7"/></svg>
+                    Connect &amp; Start
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Connection Status Bar -->
+    <div class="connection-bar" id="connectionBar">
+        <div class="connection-dot" id="connectionDot"></div>
+        <span id="connectionText">Connecting...</span>
+    </div>
+
+    <!-- Header -->
+    <header class="header" id="header">
+        <div class="header-inner">
+            <div class="logo">
+                <div class="logo-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/>
+                        <polyline points="17 2 12 7 7 2"/>
+                    </svg>
+                </div>
+                <span class="logo-text">GearVault</span>
+            </div>
+            <nav class="nav">
+                <button class="nav-btn active" data-section="dashboard" id="navDashboard">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+                    Dashboard
+                </button>
+                <button class="nav-btn" data-section="members" id="navMembers">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                    Members
+                </button>
+                <button class="nav-btn" data-section="inventory" id="navInventory">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+                    Inventory
+                </button>
+            </nav>
+            <div class="header-actions">
+                <div class="search-bar" id="searchBar">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                    <input type="text" placeholder="Search electronics or members..." id="searchInput">
+                </div>
+                <button class="icon-btn settings-btn" id="settingsBtn" title="Settings">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main">
+        <!-- Dashboard Section -->
+        <section class="section active" id="sectionDashboard">
+            <div class="section-header">
+                <div>
+                    <h1 class="section-title">Dashboard</h1>
+                    <p class="section-subtitle">Overview of your group's electronics</p>
+                </div>
+            </div>
+
+            <!-- Stats Cards -->
+            <div class="stats-grid" id="statsGrid">
+                <div class="stat-card" id="statMembers">
+                    <div class="stat-icon purple">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                    </div>
+                    <div class="stat-info">
+                        <span class="stat-number" id="totalMembers">0</span>
+                        <span class="stat-label">Members</span>
+                    </div>
+                </div>
+                <div class="stat-card" id="statItems">
+                    <div class="stat-icon blue">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><polyline points="17 2 12 7 7 2"/></svg>
+                    </div>
+                    <div class="stat-info">
+                        <span class="stat-number" id="totalItems">0</span>
+                        <span class="stat-label">Total Items</span>
+                    </div>
+                </div>
+                <div class="stat-card" id="statCategories">
+                    <div class="stat-icon green">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+                    </div>
+                    <div class="stat-info">
+                        <span class="stat-number" id="totalCategories">0</span>
+                        <span class="stat-label">Categories</span>
+                    </div>
+                </div>
+                <div class="stat-card" id="statTopOwner">
+                    <div class="stat-icon orange">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                    </div>
+                    <div class="stat-info">
+                        <span class="stat-number" id="topOwner">—</span>
+                        <span class="stat-label">Top Collector</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Activity + Category Breakdown -->
+            <div class="dashboard-grid">
+                <div class="card" id="recentActivityCard">
+                    <div class="card-header">
+                        <h2>Recent Additions</h2>
+                    </div>
+                    <div class="card-body" id="recentActivity">
+                        <div class="empty-state">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+                            <p>No items added yet</p>
+                            <span>Start by adding members and their electronics</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="card" id="categoryBreakdownCard">
+                    <div class="card-header">
+                        <h2>Category Breakdown</h2>
+                    </div>
+                    <div class="card-body" id="categoryBreakdown">
+                        <div class="empty-state">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+                            <p>No categories yet</p>
+                            <span>Categories appear when you add electronics</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Members Section -->
+        <section class="section" id="sectionMembers">
+            <div class="section-header">
+                <div>
+                    <h1 class="section-title">Members</h1>
+                    <p class="section-subtitle">Manage your friend group</p>
+                </div>
+                <button class="btn-primary" id="addMemberBtn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    Add Member
+                </button>
+            </div>
+            <div class="members-grid" id="membersGrid">
+                <!-- Dynamically populated -->
+            </div>
+        </section>
+
+        <!-- Inventory Section -->
+        <section class="section" id="sectionInventory">
+            <div class="section-header">
+                <div>
+                    <h1 class="section-title">Inventory</h1>
+                    <p class="section-subtitle">All electronics at a glance</p>
+                </div>
+                <div class="header-controls">
+                    <div class="filter-group">
+                        <select id="filterCategory" class="filter-select">
+                            <option value="">All Categories</option>
+                        </select>
+                        <select id="filterMember" class="filter-select">
+                            <option value="">All Members</option>
+                        </select>
+                    </div>
+                    <button class="btn-primary" id="addItemBtn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                        Add Item
+                    </button>
+                </div>
+            </div>
+            <div class="inventory-table-wrapper" id="inventoryTableWrapper">
+                <table class="inventory-table" id="inventoryTable">
+                    <thead>
+                        <tr>
+                            <th>Item</th>
+                            <th>Category</th>
+                            <th>Owner</th>
+                            <th>Quantity</th>
+                            <th>Notes</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="inventoryBody">
+                        <!-- Dynamically populated -->
+                    </tbody>
+                </table>
+            </div>
+            <div class="empty-state" id="inventoryEmpty" style="display:none;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><polyline points="17 2 12 7 7 2"/></svg>
+                <p>No electronics in inventory</p>
+                <button class="btn-primary" onclick="showAddItemModal()" style="margin-top: 16px;">Add Your First Item</button>
+            </div>
+        </section>
+    </main>
+
+    <!-- Modal Overlay -->
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal" id="modal">
+            <button class="modal-close" id="modalClose">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+            <div class="modal-content" id="modalContent">
+                <!-- Dynamically populated -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- Floating Action Button -->
+    <button class="fab" id="fabAdd" title="Add Item">+</button>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
